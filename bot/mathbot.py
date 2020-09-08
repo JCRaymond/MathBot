@@ -32,7 +32,15 @@ tex_pagestart = r"""
 \documentclass[preview]{standalone}
 \usepackage[margin=2.75in]{geometry}
 \usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
 \usepackage{xcolor}
+\newcommand*{\Z}{\mathbb{Z}}
+\newcommand*{\N}{\mathbb{N}}
+\newcommand*{\R}{\mathbb{R}}
+\newcommand*{\Q}{\mathbb{Q}}
+\newcommand*{\F}{\mathbb{F}}
+\newcommand*{\T}{\mathbb{T}}
 \begin{document}
 \nopagecolor
 \color{white}{
