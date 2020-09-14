@@ -259,7 +259,7 @@ async def _addcourse(dep, num):
     await chan.edit(position=pos)
     return chan
 
-@bot.command()
+@bot.command(aliases=['createcourse',])
 async def addcourse(ctx, *args):
     if ctx.guild != guild or ctx.prefix != '!':
         return
@@ -294,8 +294,8 @@ async def addcourse(ctx, *args):
     await bot_log.send(f'{channel.mention} created by mod.')
     await ctx.channel.send(f'Successfully created channel {channel.mention}.')
 
-@bot.command()
-async def deletecourse(ctx, *args):
+@bot.command(aliases=['deletecourse',])
+async def removecourse(ctx, *args):
     if ctx.guild != guild or ctx.prefix != '!':
         return
     Mod = d.utils.get(ctx.author.roles, name='Moderator')
