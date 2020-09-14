@@ -5,3 +5,5 @@ config.json
 .tex
 *.tex
 *.png
+*.tmp
+*.data

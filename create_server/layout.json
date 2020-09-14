@@ -1,0 +1,121 @@
+{
+   "templates": {
+      "counter1": 5
+   },
+   "aliases": {
+      "TEXT_BASIC": ["send_messages", "embed_links", "attach_files", "read_message_history", "add_reactions", "external_emojis"],
+      "VOICE_BASIC": ["connect", "speak", "use_voice_activation", "stream"],
+      "BASIC": ["TEXT_BASIC", "VOICE_BASIC", "create_instant_invite", "change_nickname"],
+      "MODERATOR": ["kick_members", "ban_members", "manage_nicknames", "manage_emojis", "manage_messages", "mention_everyone", "mute_members", "deafen_members", "move_members", "priority_speaker"]
+   },
+   "roles": {
+      "Moderator": {
+         "permissions": "MODERATOR",
+         "mentionable": true
+      },
+      "Faculty": {
+         "hoist": true
+      },
+      "Staff": {
+         "hoist": true
+      },
+      "Doctoral": {
+         "hoist": true
+      },
+      "Grad": {
+         "hoist": true
+      },
+      "Undergrad": {
+         "hoist": true
+      },
+      "Tutor/TA": null,
+      "Student": null,
+      "Member": {
+         "permissions": "BASIC"
+      },
+      "default": null
+   },
+   "channels": {
+      "category:Mod": {
+         "overwrites": {
+            "default": "~view_channel",
+            "Moderator": "view_channel"
+         },
+         "channels": {
+            "text:general": null,
+            "voice:general": null
+         }
+      },
+      "category:Server": {
+         "overwrites": {
+            "default": ["view_channel", "read_message_history", "~send_messages"]
+         },
+         "channels": {
+            "text:rules": null,
+            "text:announcements": null,
+            "text:suggestions": {
+               "Member": "send_messages"
+            },
+            "text:terminal": {
+               "Member": "send_messages",
+               "Moderator": "read_message_history"
+            },
+            "text:new_member": {
+               "default": ["add_reactions"],
+               "Member": "~view_channel"
+            } 
+         }
+      },
+      "category:General": {
+         "overwrites": {
+            "default": "~view_channel",
+            "Member": "view_channel"
+         },
+         "channels": {
+            "text:general-lounge": null,
+            "text:teachers-lounge": {
+               "default": "~view_channel",
+               "Member": "~view_channel",
+               "Faculty": "view_channel",
+               "Staff": "view_channel",
+               "Doctoral": "view_channel",
+               "Moderator": "view_channel"
+            },
+            "text:questions": null,
+            "voice:##Voice Lounge <counter1>": {
+               "template": "counter1"
+            }
+         }
+      },
+      "category:MATH Courses": {
+         "overwrites": {
+            "default": "~view_channel",
+            "Member": "~view_channel"
+         }
+      },
+      "category:STAT Courses": {
+         "overwrites": {
+            "default": "~view_channel",
+            "Member": "~view_channel"
+         }
+      },
+      "category:OPRS Courses": {
+         "overwrites": {
+            "default": "~view_channel",
+            "Member": "~view_channel"
+         }
+      },
+      "category:Off-Topic": {
+         "overwrites": {
+            "default": "~view_channel",
+            "Member": "view_channel"
+         },
+         "channels": {
+            "text:general": null,
+            "text:math-memes": null,
+            "text:other-memes": null,
+            "voice:Random Talk": null
+         }
+      }
+   }
+}

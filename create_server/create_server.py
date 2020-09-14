@@ -1,0 +1,288 @@
+import discord as d
+import json
+from collections import OrderedDict
+
+class dotdict(dict):
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+with open('../config.json', 'r') as f:
+    config = json.loads(f.read(), object_pairs_hook=dotdict)
+
+client = d.Client()
+
+global guild
+guild = None
+
+global inv_channel
+inv_channel = None
+
+async def cancel():
+    await client.logout()
+    await client.close()
+
+async def clear_guild_channels(guild):
+    channels = await guild.fetch_channels()
+    for channel in channels:
+        await channel.delete()
+
+async def clear_guild_roles(guild):
+    roles = await guild.fetch_roles()
+    for role in roles:
+        if not role.is_default():
+            try:
+                await role.delete()
+            except:
+                pass
+
+with open('default_aliases.json','r') as f:
+    default_aliases = json.loads(f.read())
+
+def dealias_list(lst, aliases):
+    for e in lst:
+        if e in aliases:
+            yield from dealias_list(aliases[e], aliases)
+        else:
+            yield e
+
+def process_template(val):
+    if isinstance(val, int):
+        yield from map(str,range(1, val+1))
+    elif isinstance(val, list):
+        yield from map(str,val)
+    else:
+        yield val
+
+def process_color(color, aliases):
+    if color in aliases:
+        color = aliases[color]
+    return d.Color(int(color,16))
+
+def process_permissions(permissions, aliases, cls=d.Permissions):
+    if not isinstance(permissions, list):
+        permissions = [permissions]
+    perm_vals = {}
+    for permission in dealias_list(permissions, aliases):
+        if permission.startswith('~'):
+            perm_vals[permission[1:]] = False
+        else:
+            perm_vals[permission] = True
+    return cls(**perm_vals)
+
+roles = None
+def process_overwrites(guild, overwrites, aliases, templates=None):
+    ret = {}
+    if templates is not None:
+        for name, perms in overwrites.items():
+            role = guild.default_role
+            if name != 'default':
+                if name.startswith('##'):
+                    name = name[2:]
+                    for template in templates:
+                        name = name.replace(*template)
+                role = d.utils.get(roles, name=name)
+            perms = process_permissions(perms, aliases, cls=d.PermissionOverwrite)
+            ret[role]=perms
+    else:
+        for name, perms in overwrites.items():
+            role = guild.default_role
+            if name != 'default':
+                role = d.utils.get(roles, name=name)
+            perms = process_permissions(perms, aliases, cls=d.PermissionOverwrite)
+            ret[role]=perms
+    return ret
+
+async def create_role(guild, name, settings, aliases):
+    if settings is None:
+        settings = {}
+    else:
+        settings = dict(settings)
+    if 'permissions' not in settings:
+        settings['permissions'] = []
+    settings['permissions'] = process_permissions(settings['permissions'],aliases)
+    if 'color' in settings:
+        settings['color'] = process_color(settings['color'], aliases)
+    isbotrole = False
+    if 'botrole' in settings:
+        isbotrole = True
+        del settings['botrole']
+    role = None
+    if name == 'default':
+        role = await guild.default_role.edit(**settings)
+    else:
+        role = await guild.create_role(name=name, **settings)
+    if isbotrole:
+        return role
+    return None
+
+async def create_roles(guild, roles, aliases, template_vals):
+    botrole = None
+    for name, settings in roles.items():
+        if name.startswith('##'):
+            if 'template' not in settings:
+                print(f'Must provide template name for templated role "{name}"')
+                return False
+            name = name[2:]    
+            settings = dict(settings)
+            template_name = settings['template']
+            del settings['template']
+            template_rep = f'<{template_name}>'
+            for tempval in process_template(template_vals[template_name]):
+                subname = name.replace(template_rep, tempval)
+                role = await create_role(guild, subname, settings, aliases)
+                if role is not None:
+                    botrole = role
+        else:
+            role = await create_role(guild, name, settings, aliases)
+            if role is not None:
+                botrole = role
+    
+    return True
+
+def sync_overwrites(parent_overwrites, child_overwrites):
+    new_overwrites = dict(parent_overwrites)
+    for role, child_ow in child_overwrites.items():
+        if role not in new_overwrites:
+            new_overwrites[role] = child_ow
+            continue
+        new_ow = new_overwrites[role]
+        new_ow.update(**child_ow._values)
+    return new_overwrites
+
+async def create_channel(guild, ctype, name, settings, aliases, template_vals, category=None, templates=None):
+    if settings is None:
+        settings = {}
+    else:
+        settings = dict(settings)
+    if name.startswith('##'):
+        if 'template' not in settings:
+            if templates is None:
+                print(f'Must provide template name for the templated channel "{name}"')
+                return False
+            name = name[2:]
+            for template in templates:
+                name = name.replace(*template)
+            success = await create_channel(guild, ctype, name, settings, aliases, template_vals, category, templates)
+            if not success:
+                return False
+            return True
+        name = name[2:]
+        template_name = settings['template']
+        del settings['template']
+        if template_name.startswith('##'):
+            template_name = template_name[2:]
+            for template in templates:
+                template_name = template_name.replace(*template)
+        template_rep = f'<{template_name}>'
+        if templates is None:
+            templates = []
+        for tempval in process_template(template_vals[template_name]):
+            new_templates = templates + [(template_rep, tempval)]
+            subname = name
+            for template in new_templates:
+                subname = subname.replace(*template)
+            success = await create_channel(guild, ctype, subname, settings, aliases, template_vals, category, new_templates)
+            if not success:
+                return False
+        return True
+    overwrites = process_overwrites(guild, settings, aliases, templates)
+    if category is not None:
+        overwrites = sync_overwrites(category.overwrites, overwrites) 
+    op = guild.create_text_channel
+    if ctype == 'voice':
+        op =  guild.create_voice_channel
+    await op(name, overwrites=overwrites, category=category)
+    return True
+
+
+async def create_category(guild, name, settings, aliases, template_vals, templates=None):
+    if settings is None:
+        settings = {}
+    else:
+        settings = dict(settings)
+    if name.startswith('##'):
+        if 'template' not in settings:
+            print(f'Must provide template name for the templated category "{name}"')
+        name = name[2:]
+        template_name = settings['template']
+        del settings['template']
+        template_rep = f'<{template_name}>'
+        for tempval in process_template(template_vals[template_name]):
+            subname = name.replace(template_rep, tempval)
+            success = await create_category(guild, subname, settings, aliases, template_vals, [(template_rep, tempval),])
+            if not success:
+                return False
+        return True
+    channels = settings.get('channels',{})
+    overwrites = settings.get('overwrites', {})
+    overwrites = process_overwrites(guild, overwrites, aliases, templates)
+    category = await guild.create_category(name, overwrites=overwrites)
+    category = await client.fetch_channel(category.id)
+    for channel, channel_settings in channels.items():
+        ctype, _, name = channel.partition(':')
+        success = await create_channel(guild, ctype, name, channel_settings, aliases, template_vals, category, templates)
+        if not success:
+            return False
+    return True
+
+async def create_channels(guild, channels, aliases, templates):
+    global roles
+    roles = await guild.fetch_roles()
+    for name, settings in channels.items():
+        if settings is None:
+            settings = {}
+        ctype, _, name = name.partition(':')
+        if ctype == 'category':
+            success = await create_category(guild, name, settings, aliases, templates)
+            if not success:
+                return False
+        elif ctype == 'text' or ctype == 'voice':
+            success = await create_channel(guild, ctype, name, settings, aliases, templates)
+            if not success:
+                return False
+    return True
+
+async def apply_layout(guild, layout):
+    await clear_guild_channels(guild)
+    await clear_guild_roles(guild)
+    templates = layout.get('templates', {})
+    aliases = layout.get('aliases', {})
+    aliases.update(default_aliases)
+    roles = layout.get('roles', {})
+    channels = layout.get('channels',{})
+    success = await create_roles(guild, roles, aliases, templates)
+    if not success:
+        return False
+    return await create_channels(guild, channels, aliases, templates)
+
+@client.event
+async def on_ready():
+    global guild, inv_channel
+    guild_name = config.server_name
+    guild = d.utils.get(client.guilds, name=config.server_name)
+    if guild is None:
+        print('Server does not exist!')
+        return
+
+    resp = input('Apply layout? (y/N): ')
+    if resp == '' or resp[0].lower() != 'y':
+        print('Cancelling.')
+        await cancel()
+        return
+    
+    print('Reading layout... ', end='')
+    with open('layout.json', 'r') as f:
+        layout = json.loads(f.read(), object_pairs_hook=OrderedDict)
+
+    print('Applying layout...')
+    success = await apply_layout(guild, layout)
+    if not success:
+        print('Application of layout unsuccessful, deleting guild...')
+        await guild.delete()
+        await cancel()
+        return
+    print('Server successfully setup!')
+   
+client.run(config.token)
+
