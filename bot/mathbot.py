@@ -159,7 +159,8 @@ async def on_ready():
             texf = d.File(f, filename=f'tex_ex2.png')
         await rules_channel.send(file=texf)
 
-        await rules_channel.send('If you have any questions or are experiencing difficulties with the bot, feel free to ask for help in #questions.')
+        questions_channel = d.utils.get(channels, name='questions')
+        await rules_channel.send('If you have any questions or are experiencing difficulties with the bot, feel free to ask for help in <#754844109705052220>.')
     accept_channel = d.utils.get(channels, name='new_member')
     i = 0
     async for message in accept_channel.history(limit = 1):
@@ -172,7 +173,7 @@ async def on_ready():
             '',
             'Whether you\'re a graduate student studying math, or an engineering major taking Calc 2, everyone is welcome to join, connect with peers, and talk about your math courses and math in general!',
             '',
-            'Please read the #rules-and-instructions. Once you understand them, accept the rules by clicking on the green check mark below, which will give you access to the rest of the server.'
+            'Please read the <#754844106395484221>. Once you understand them, accept the rules by clicking on the green check mark below, which will give you access to the rest of the server.'
         )))
         await accept_message.add_reaction(chr(128077))
         await accept_message.add_reaction(chr(127383))
