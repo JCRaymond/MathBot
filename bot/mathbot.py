@@ -43,15 +43,20 @@ if os.path.exists(DATNAME):
         coursedat = pickle.load(f)
 
 delete_emoji = chr(10060)
+undergrad_emoji = chr(127482)
+grad_emoji = chr(127468)
+staff_emoji = chr(127480)
+alum_emoji = chr(127462)
+accept_emoji = chr(9989)
 @bot.event
 async def on_ready():
-    global guild, coursedat
+    global guild, coursedat, role_message, alum_message, accept_message
     guild = d.utils.get(bot.guilds, name=config.server_name)
     sp.run('mkdir -p .tex', shell=True)
     print(f"Bot connected to {guild}")
+    channels = await guild.fetch_channels()
     if coursedat is None:
         print(f"Recovering courses from guild...")
-        channels = await guild.fetch_channels()
         coursedat = Courses()
         math = d.utils.get(channels, name="MATH Courses")
         stat = d.utils.get(channels, name="STAT Courses")
@@ -66,7 +71,111 @@ async def on_ready():
         coursedat.stat = stat_courses
         coursedat.oprs = oprs_courses
         persist_courses()
+    rules_channel = d.utils.get(channels, name='rules-and-instructions')
+    i = 0
+    async for message in rules_channel.history(limit = 20, oldest_first=True):
+        if i == 1:
+            role_message = message
+        elif i == 2:
+            alum_message = message
+        elif i > 2:
+            break
+        i+=1
+    else:
+        await rules_channel.send('\n'.join((
+            '__**Server Rules**__',
+            '1. **No cheating.** Any instances of cheating will be recorded, removed, and provided to the University at request.',
+            '2. **Be civil.** Have fun, make jokes, talk about whatever you want, but keep in mind you are talking to your peers and professors!',
+            '3. Represent yourself correctly when choosing your role.',
+            '4. Moderators reserve the right to change the rules at any time with notification, and determine any punishment for the violation of the rules.'
+        )))
 
+        role_message = await rules_channel.send('\n'.join((
+            '__**Server Roles**__',
+            "For simplicity, you mostly have the ability to give yourself the role corresponding to your position within the university. In accordance with the rules, misrepresenting yourself with the roles (i.e. having the Grad role when you're an undergraduate) is subject to punishment, so please choose the appropriate role. The only exception to these are the **Faculty**, **Doctoral**, and **Tutor/TA** roles, which are verified. In order to obtain one of these roles, please contact (with your UNCC email) `unofficialunccmathdiscord@gmail.com` with some sort of proof. We will never email you first, and will only respond to emails you send.",
+            '',
+            'To set your role, click one of the following below:',
+            ':regional_indicator_u: - Undergraduate Student',
+            ':regional_indicator_g: - Graduate Student',
+            ':regional_indicator_s: - Staff/Faculty (if you are a faculty member, select this until you are verified as a faculty member)'
+        )))
+        await role_message.add_reaction(undergrad_emoji)
+        await role_message.add_reaction(grad_emoji)
+        await role_message.add_reaction(staff_emoji)
+
+        alum_message = await rules_channel.send('\n'.join((
+            'If you are an alumnus of UNCC, feel free to click on :regional_indicator_a: below to be given the decorative Alumnus role.',
+        )))
+        await alum_message.add_reaction(alum_emoji)
+
+        await rules_channel.send('\n'.join((
+            '__**Courses and Commands**__',
+            'To clean up the look and feel of this server, you will only see the courses which you are "registered" to see. The following commands can be used in the #terminal text channel to control which courses you are registered for. Further instructions on the usage of the commands will be given if you type out the command in the terminal.',
+            '',
+            '`!courses` - List out the current courses you can register for.',
+            '`!register` - Register for an existing course (so you can see the text channel for the course)',
+            '`!drop` - Drop a course you are registered for (you will no longer see the text channel for this course)',
+            '`!request` - Request for a course to be added. After 2 users request the same course, it will automatically be created, and you will automatically be registered for it.',
+            '',
+            'If you have any questions about using these commands, feel free to ask in #questions.'
+        )))
+
+        await rules_channel.send('\n'.join((
+            '__**Latex!**__',
+            'You can use LaTeX on this server anywhere at any time! This works best when you are using the dark mode for Discord (which is the default).',
+            'There are two commands you can use:',
+            '',
+            '`$` or `$math` - Interprets the remainder of your message as math mode, and renders it using LaTeX',
+            '',
+            '`$tex` or `$latex` - Interprets the remainder of your message as LaTeX, meaning to write math you will have to enter math mode as usual.',
+            '',
+            '**There must be a space after any of these commands before your LaTeX.**',
+            '',
+            'To remove latex you created, add :x: as a reaction. You cannot remove someone else\'s LaTeX.'
+        )))
+
+        await rules_channel.send('\n'.join((
+            'Example 1:',
+            '```',
+            '$ \\sum_{i=0}^n \\binom{n}{i} = 2^n',
+            '```',
+            'Appears as:'
+        )))
+        with open('tex_ex1.png', 'rb') as f:
+            texf = d.File(f, filename=f'tex_ex1.png')
+        await rules_channel.send(file=texf)
+
+        await rules_channel.send('\n'.join((
+            'Example 2:',
+            '```',
+            '$tex Let $n \\in \\N$. Then',
+            '\\begin{equation*}',
+            '\t\\sum_{i=0}^n \\binom{n}{i} = 2^n',
+            '\\end{equation*}',
+            '```',
+            'Appears as:'
+        )))
+        with open('tex_ex2.png', 'rb') as f:
+            texf = d.File(f, filename=f'tex_ex2.png')
+        await rules_channel.send(file=texf)
+    accept_channel = d.utils.get(channels, name='new_member')
+    i = 0
+    async for message in accept_channel.history(limit = 1):
+        accept_message = message
+        break
+    else:
+        accept_message = await accept_channel.send('\n'.join((
+            '**Welcome to the __Unofficial__ UNCC Math Discord Server!**',
+            'This server is run by students, for anyone and everyone. Neither UNCC nor the Mathematics and Statistics Department of UNCC are affiliated with this Discord server in any way, shape, or form.',
+            '',
+            'Whether you\'re a graduate student studying math, or an engineering major taking Calc 2, everyone is welcome to join, connect with peers, and talk about your math courses and math in general!',
+            '',
+            'Please read the #rules-and-instructions. Once you understand them, accept the rules by clicking on the green check mark below, which will give you access to the rest of the server.'
+        )))
+        await accept_message.add_reaction(chr(128077))
+        await accept_message.add_reaction(chr(127383))
+        await accept_message.add_reaction(accept_emoji)
+        await accept_message.add_reaction(chr(11014))
     
 tex_pagestart = r"""
 \documentclass[preview,border={1pt,0pt,0pt,0pt}]{standalone}
@@ -186,6 +295,45 @@ async def math(ctx):
         file=texf
     )
 
+async def set_role(member, emoji):
+    if (emoji != undergrad_emoji):
+        await role_message.remove_reaction(undergrad_emoji, member)
+        undergrad = d.utils.get(member.roles, name='Undergrad')
+        if undergrad is not None:
+            student = d.utils.get(guild.roles, name='Student')
+            await member.remove_roles(undergrad, student)
+    if (emoji != grad_emoji):
+        await role_message.remove_reaction(grad_emoji, member)
+        grad = d.utils.get(member.roles, name='Grad')
+        if grad is not None:
+            student = d.utils.get(guild.roles, name='Student')
+            await member.remove_roles(grad, student)
+    if (emoji != staff_emoji):
+        await role_message.remove_reaction(staff_emoji, member)
+        staff = d.utils.get(member.roles, name='Staff')
+        if staff is not None:
+            await member.remove_roles(staff)
+
+    if (emoji == undergrad_emoji):
+        student = d.utils.get(guild.roles, name='Student')
+        undergrad = d.utils.get(guild.roles, name='Undergrad')
+        await member.add_roles(student, undergrad)
+    elif (emoji == grad_emoji):
+        student = d.utils.get(guild.roles, name='Student')
+        grad = d.utils.get(guild.roles, name='Grad')
+        await member.add_roles(student, grad)
+    elif (emoji == staff_emoji):
+        staff = d.utils.get(guild.roles, name='Staff')
+        await member.add_roles(staff)
+
+async def set_alum(member):
+    alum = d.utils.get(guild.roles, name='Alum')
+    await member.add_roles(alum)
+
+async def set_member(member):
+    mem_role = d.utils.get(guild.roles, name='Member')
+    await member.add_roles(mem_role)
+
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.event_type != 'REACTION_ADD':
@@ -197,13 +345,24 @@ async def on_raw_reaction_add(payload):
     if emoji is None:
         return
     react_mem = payload.member
-    if emoji != delete_emoji or react_mem == guild.me:
+    if react_mem == guild.me:
         return
     channel = await bot.fetch_channel(payload.channel_id)
     if channel is None:
         return
     message = await channel.fetch_message(payload.message_id)
     if message is None:
+        return
+    if (emoji == undergrad_emoji or emoji == grad_emoji or emoji == staff_emoji) and message.id == role_message.id:
+        await set_role(react_mem, emoji)
+        return
+    if emoji == alum_emoji and message.id == alum_message.id:
+        await set_alum(react_mem)
+        return
+    if emoji == accept_emoji and message.id == accept_message.id:
+        await set_member(react_mem)
+        return
+    if emoji != delete_emoji:
         return
     if not message.author.bot:
         return
@@ -223,6 +382,28 @@ async def on_raw_reaction_add(payload):
     if react_mem.id != tex_id:
         return
     await message.delete()
+    
+@bot.event
+async def on_raw_reaction_remove(payload):
+    if payload.event_type != 'REACTION_REMOVE':
+        return
+    payload_guild = await bot.fetch_guild(payload.guild_id)
+    if payload_guild != guild:
+        return
+    emoji = payload.emoji.name
+    if emoji is None or emoji != alum_emoji:
+        return
+    react_mem = await guild.fetch_member(payload.user_id)
+    if react_mem == guild.me:
+        return
+    channel = await bot.fetch_channel(payload.channel_id)
+    if channel is None:
+        return
+    message = await channel.fetch_message(payload.message_id)
+    if message is None or message.id != alum_message.id:
+        return
+    alum = d.utils.get(guild.roles, name='Alum')
+    await react_mem.remove_roles(alum)
 
 def iter_all(*args):
     for arg in args:
