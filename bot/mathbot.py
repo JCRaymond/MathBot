@@ -159,7 +159,7 @@ async def on_ready():
             texf = d.File(f, filename=f'tex_ex2.png')
         await rules_channel.send(file=texf)
 
-        await rules_channel.send('If you have any questions or are experiencing difficulties with the bot, feel free to ask for help in #questions')
+        await rules_channel.send('If you have any questions or are experiencing difficulties with the bot, feel free to ask for help in #questions.')
     accept_channel = d.utils.get(channels, name='new_member')
     i = 0
     async for message in accept_channel.history(limit = 1):
