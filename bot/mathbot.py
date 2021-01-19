@@ -92,7 +92,7 @@ async def on_ready():
 
         role_message = await rules_channel.send('\n'.join((
             '__**Server Roles**__',
-            "For simplicity, you mostly have the ability to give yourself the role corresponding to your position within the university. In accordance with the rules, misrepresenting yourself with the roles (i.e. having the Grad role when you're an undergraduate) is subject to punishment, so please choose the appropriate role. The only exception to these are the **Faculty**, **Doctoral**, and **Tutor/TA** roles, which are verified. In order to obtain one of these roles, please contact (with your UNCC email) `unofficialunccmathdiscord@gmail.com` with some sort of proof. We will never email you first, and will only respond to emails you send.",
+            "For simplicity, you mostly have the ability to give yourself the role corresponding to your position within the university. In accordance with the rules, misrepresenting yourself with the roles (i.e. having the Grad role when you're an undergraduate) is subject to punishment, so please choose the appropriate role. The only exception to these are the **Faculty**, **Doctoral**, and **Tutor/TA** roles, which are verified. In order to obtain one of these roles, please contact (with your UNCC email) `unofficialunccmathdiscord@gmail.com` with your Discord name and some sort of proof that you should be that role. We will never email you first, and will only respond to emails you send.",
             '',
             'To set your role, click one of the following below:',
             ':regional_indicator_u: - Undergraduate Student',
